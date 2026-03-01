@@ -5,6 +5,19 @@ from mem0 import Memory
 import os
 import logging
 
+# FlashRank reranker (inicializado lazy para não bloquear o startup)
+_flashrank_ranker = None
+def get_flashrank():
+    global _flashrank_ranker
+    if _flashrank_ranker is None:
+        try:
+            from flashrank import Ranker
+            _flashrank_ranker = Ranker(model_name="ms-marco-MiniLM-L-12-v2", cache_dir="/app/.cache/flashrank")
+            logger.info("✅ FlashRank reranker loaded")
+        except Exception as e:
+            logger.warning(f"⚠️ FlashRank not available: {e}")
+    return _flashrank_ranker
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,13 +69,6 @@ try:
                 "model": embedding_model,
             },
         },
-        "reranker": {
-            "provider": "flashrank",
-            "config": {
-                "model": "ms-marco-MiniLM-L-12-v2",
-                "top_n": 5
-            },
-        },
     }
 
     memory = Memory.from_config(config)
@@ -83,6 +89,8 @@ class AddMemoryRequest(BaseModel):
 class SearchMemoryRequest(BaseModel):
     query: str
     user_id: str = "default"
+    limit: int = 10
+    top_n: int = 5
 
 class UpdateMemoryRequest(BaseModel):
     memory_id: str
@@ -187,12 +195,39 @@ def add_memory(request: AddMemoryRequest):
 
 @app.post("/memory/search")
 def search_memory(request: SearchMemoryRequest):
-    """Search memories"""
+    """Search memories with optional FlashRank reranking"""
     if not memory:
         raise HTTPException(status_code=500, detail=f"Mem0 not initialized: {mem0_error}")
 
     try:
-        result = memory.search(query=request.query, user_id=request.user_id)
+        result = memory.search(query=request.query, user_id=request.user_id, limit=request.limit)
+
+        # Aplicar FlashRank reranking se disponível
+        ranker = get_flashrank()
+        if ranker:
+            try:
+                from flashrank import RerankRequest
+                memories = result.get("results", result) if isinstance(result, dict) else result
+                if memories and isinstance(memories, list):
+                    passages = [{"id": i, "text": m.get("memory", str(m))} for i, m in enumerate(memories)]
+                    rerank_req = RerankRequest(query=request.query, passages=passages)
+                    reranked = ranker.rerank(rerank_req)
+                    # Reordenar memórias conforme score do FlashRank
+                    reranked_sorted = sorted(reranked, key=lambda x: x.get("score", 0), reverse=True)
+                    top_ids = [r["id"] for r in reranked_sorted[:request.top_n]]
+                    reranked_memories = [memories[i] for i in top_ids if i < len(memories)]
+                    # Adicionar score do reranker
+                    for i, mem in enumerate(reranked_memories):
+                        mem["rerank_score"] = reranked_sorted[i].get("score", 0)
+                    if isinstance(result, dict):
+                        result["results"] = reranked_memories
+                        result["reranked"] = True
+                    else:
+                        result = reranked_memories
+                    logger.info(f"✅ FlashRank reranking applied: {len(memories)} -> {len(reranked_memories)} results")
+            except Exception as re:
+                logger.warning(f"⚠️ FlashRank reranking failed, returning original results: {re}")
+
         logger.info(f"✅ Memory search completed for user: {request.user_id}")
         return {"success": True, "result": result}
     except Exception as e:
