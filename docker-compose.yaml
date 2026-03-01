@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # Mem0 API Service
+  mem0-api:
+    build:
+      context: ./mem0-api
+      dockerfile: Dockerfile
+    container_name: mem0-api
+    ports:
+      - "8000:8000"
+    environment:
+      # OpenAI Configuration
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-large}
+      
+      # Vector Store Configuration (Qdrant)
+      VECTOR_STORE: ${VECTOR_STORE:-qdrant}
+      QDRANT_HOST: ${QDRANT_HOST:-qdrant}
+      QDRANT_PORT: ${QDRANT_PORT:-6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+    
+    depends_on:
+      - qdrant
+    
+    networks:
+      - mem0-network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    restart: unless-stopped
+    
+    volumes:
+      - mem0-api-cache:/app/.cache
+
+  # OpenMemory UI Service
+  openmemory-ui:
+    image: mem0/openmemory-ui:latest
+    container_name: openmemory-ui
+    ports:
+      - "3000:3000"
+    
+    environment:
+      # API Configuration
+      REACT_APP_API_URL: http://mem0-api:8000
+      REACT_APP_API_BASE_URL: http://mem0-api:8000/api
+      
+      # Qdrant Configuration
+      QDRANT_HOST: ${QDRANT_HOST:-qdrant}
+      QDRANT_PORT: ${QDRANT_PORT:-6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      
+      # OpenAI Configuration
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-large}
+    
+    depends_on:
+      - mem0-api
+      - qdrant
+    
+    networks:
+      - mem0-network
+    
+    restart: unless-stopped
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    
+    environment:
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+    
+    volumes:
+      - qdrant-storage:/qdrant/storage
+    
+    networks:
+      - mem0-network
+    
+    restart: unless-stopped
+
+networks:
+  mem0-network:
+    driver: bridge
+
+volumes:
+  mem0-api-cache:
+    driver: local
+  qdrant-storage:
+    driver: local
