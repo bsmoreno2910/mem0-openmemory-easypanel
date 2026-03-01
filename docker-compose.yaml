@@ -69,6 +69,15 @@ services:
     volumes:
       - openmemory-mcp-email-data:/usr/src/openmemory
 
+  # Mem0 Dashboard - UI customizada com seletor de usuário
+  mem0-dashboard:
+    build:
+      context: ./mem0-dashboard
+      dockerfile: Dockerfile
+    networks:
+      - mem0-network
+    restart: unless-stopped
+
   # OpenMemory UI Service
   openmemory-ui:
     image: mem0/openmemory-ui:latest

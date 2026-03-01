@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mem0 Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1d2e;
+      border-bottom: 1px solid #2d3748;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header .badge {
+      background: #2d3748;
+      color: #a0aec0;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.8rem;
+      color: #a0aec0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    select, input[type="text"] {
+      background: #1a1d2e;
+      border: 1px solid #2d3748;
+      color: #e2e8f0;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      min-width: 220px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: #667eea;
+    }
+
+    button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .btn-danger {
+      background: #e53e3e;
+      color: white;
+    }
+
+    .btn-danger:hover { background: #c53030; }
+
+    .btn-secondary {
+      background: #2d3748;
+      color: #e2e8f0;
+    }
+
+    .btn-secondary:hover { background: #3d4a5c; }
+
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: #1a1d2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 16px 24px;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .stat-card .label {
+      font-size: 0.8rem;
+      color: #a0aec0;
+      margin-top: 4px;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .search-bar input {
+      flex: 1;
+    }
+
+    .memories-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .memory-card {
+      background: #1a1d2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.2s;
+      position: relative;
+    }
+
+    .memory-card:hover {
+      border-color: #667eea;
+    }
+
+    .memory-card .memory-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #e2e8f0;
+      margin-bottom: 12px;
+    }
+
+    .memory-card .memory-meta {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .memory-card .memory-id {
+      font-size: 0.72rem;
+      color: #4a5568;
+      font-family: monospace;
+    }
+
+    .memory-card .memory-date {
+      font-size: 0.75rem;
+      color: #718096;
+    }
+
+    .memory-card .memory-score {
+      font-size: 0.75rem;
+      background: #2d3748;
+      color: #a0aec0;
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+
+    .memory-card .actions {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .memory-card:hover .actions { opacity: 1; }
+
+    .actions button {
+      padding: 4px 10px;
+      font-size: 0.8rem;
+    }
+
+    .add-memory-form {
+      background: #1a1d2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .add-memory-form h3 {
+      font-size: 1rem;
+      margin-bottom: 16px;
+      color: #a0aec0;
+    }
+
+    .add-memory-form textarea {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #2d3748;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .add-memory-form textarea:focus { border-color: #667eea; }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+      align-items: center;
+    }
+
+    .user-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #2d3748;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+    }
+
+    .user-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .dot-main { background: #667eea; }
+    .dot-whatsapp { background: #25d366; }
+    .dot-email { background: #f6ad55; }
+    .dot-openclaw { background: #fc8181; }
+    .dot-default { background: #a0aec0; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #4a5568;
+    }
+
+    .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+    .empty-state p { font-size: 1rem; }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #667eea;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1a1d2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      z-index: 1000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success { border-color: #48bb78; color: #48bb78; }
+    .toast.error { border-color: #fc8181; color: #fc8181; }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      background: #1a1d2e;
+      padding: 4px;
+      border-radius: 10px;
+      width: fit-content;
+    }
+
+    .tab {
+      padding: 8px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #718096;
+      transition: all 0.2s;
+      border: none;
+      background: transparent;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+
+    .tab:hover:not(.active) { color: #e2e8f0; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🧠 Mem0 Dashboard</h1>
+  <span class="badge">OpenMemory</span>
+</header>
+
+<div class="container">
+
+  <!-- Controles principais -->
+  <div class="controls">
+    <div class="control-group">
+      <label>Usuário / Canal</label>
+      <select id="userSelect" onchange="onUserChange()">
+        <option value="openclaw">openclaw (padrão)</option>
+        <option value="openclaw_memory_main">openclaw_memory_main</option>
+        <option value="openclaw_memory_whatsapp">openclaw_memory_whatsapp</option>
+        <option value="openclaw_memory_email">openclaw_memory_email</option>
+        <option value="custom">Personalizado...</option>
+      </select>
+    </div>
+    <div class="control-group" id="customUserGroup" style="display:none">
+      <label>user_id personalizado</label>
+      <input type="text" id="customUser" placeholder="ex: meu_usuario" />
+    </div>
+    <div class="control-group">
+      <label>&nbsp;</label>
+      <button class="btn-primary" onclick="loadMemories()">🔄 Carregar</button>
+    </div>
+    <div class="control-group">
+      <label>&nbsp;</label>
+      <button class="btn-secondary" onclick="loadAllUsers()">👥 Ver Todos os Canais</button>
+    </div>
+  </div>
+
+  <!-- Abas -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('memories')">Memórias</button>
+    <button class="tab" onclick="switchTab('search')">Buscar</button>
+    <button class="tab" onclick="switchTab('add')">Adicionar</button>
+    <button class="tab" onclick="switchTab('all-users')">Todos os Canais</button>
+  </div>
+
+  <!-- Aba: Memórias -->
+  <div id="tab-memories" class="section active">
+    <div class="stats-bar" id="statsBar"></div>
+    <div id="memoriesContainer">
+      <div class="empty-state">
+        <div class="icon">🧠</div>
+        <p>Selecione um usuário e clique em Carregar</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aba: Buscar -->
+  <div id="tab-search" class="section">
+    <div class="search-bar">
+      <input type="text" id="searchQuery" placeholder="Digite sua busca..." onkeydown="if(event.key==='Enter') searchMemories()" />
+      <button class="btn-primary" onclick="searchMemories()">🔍 Buscar</button>
+    </div>
+    <div id="searchResults">
+      <div class="empty-state">
+        <div class="icon">🔍</div>
+        <p>Digite algo para buscar nas memórias</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aba: Adicionar -->
+  <div id="tab-add" class="section">
+    <div class="add-memory-form">
+      <h3>➕ Adicionar nova memória</h3>
+      <textarea id="newMemoryText" placeholder="Ex: O usuário prefere respostas curtas e diretas..."></textarea>
+      <div class="form-row">
+        <span class="user-tag">
+          <span class="user-dot" id="addUserDot"></span>
+          <span id="addUserLabel">openclaw</span>
+        </span>
+        <button class="btn-primary" onclick="addMemory()">Salvar Memória</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aba: Todos os Canais -->
+  <div id="tab-all-users" class="section">
+    <div id="allUsersContainer">
+      <div class="empty-state">
+        <div class="icon">👥</div>
+        <p>Clique em "Ver Todos os Canais" para carregar</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API_URL = 'https://tools-mem0-api.vtc.srv.br';
+
+  const USERS = [
+    { id: 'openclaw', label: 'openclaw', dotClass: 'dot-openclaw' },
+    { id: 'openclaw_memory_main', label: 'Main', dotClass: 'dot-main' },
+    { id: 'openclaw_memory_whatsapp', label: 'WhatsApp', dotClass: 'dot-whatsapp' },
+    { id: 'openclaw_memory_email', label: 'Email', dotClass: 'dot-email' },
+  ];
+
+  function getCurrentUser() {
+    const sel = document.getElementById('userSelect').value;
+    if (sel === 'custom') return document.getElementById('customUser').value.trim();
+    return sel;
+  }
+
+  function getDotClass(userId) {
+    const u = USERS.find(u => u.id === userId);
+    return u ? u.dotClass : 'dot-default';
+  }
+
+  function onUserChange() {
+    const sel = document.getElementById('userSelect').value;
+    document.getElementById('customUserGroup').style.display = sel === 'custom' ? 'flex' : 'none';
+    updateAddUserLabel();
+  }
+
+  function updateAddUserLabel() {
+    const user = getCurrentUser();
+    document.getElementById('addUserLabel').textContent = user || '...';
+    document.getElementById('addUserDot').className = 'user-dot ' + getDotClass(user);
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      const tabs = ['memories', 'search', 'add', 'all-users'];
+      t.classList.toggle('active', tabs[i] === tab);
+    });
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    if (tab === 'add') updateAddUserLabel();
+  }
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => t.className = 'toast', 3000);
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toLocaleString('pt-BR');
+    } catch { return dateStr; }
+  }
+
+  function renderMemoryCard(mem, showDelete = true) {
+    const score = mem.score ? `<span class="memory-score">Score: ${mem.score.toFixed(3)}</span>` : '';
+    const deleteBtn = showDelete ? `<button class="btn-danger" onclick="deleteMemory('${mem.id}')">🗑</button>` : '';
+    return `
+      <div class="memory-card" id="mem-${mem.id}">
+        <div class="memory-text">${mem.memory || mem.text || JSON.stringify(mem)}</div>
+        <div class="memory-meta">
+          <span class="memory-id">${mem.id}</span>
+          <span class="memory-date">${formatDate(mem.created_at || mem.updated_at)}</span>
+          ${score}
+        </div>
+        <div class="actions">
+          ${deleteBtn}
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadMemories() {
+    const user = getCurrentUser();
+    if (!user) { showToast('Selecione um usuário', 'error'); return; }
+
+    const container = document.getElementById('memoriesContainer');
+    container.innerHTML = '<div class="loading">⏳ Carregando memórias...</div>';
+
+    try {
+      const res = await fetch(`${API_URL}/memory/all?user_id=${encodeURIComponent(user)}`);
+      const data = await res.json();
+      const memories = data.memories || data || [];
+
+      document.getElementById('statsBar').innerHTML = `
+        <div class="stat-card">
+          <div class="value">${memories.length}</div>
+          <div class="label">Total de Memórias</div>
+        </div>
+        <div class="stat-card">
+          <div class="value"><span class="user-dot ${getDotClass(user)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;"></span>${user}</div>
+          <div class="label">Canal Ativo</div>
+        </div>
+      `;
+
+      if (!memories.length) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">🧠</div><p>Nenhuma memória encontrada para este usuário</p></div>';
+        return;
+      }
+
+      container.innerHTML = '<div class="memories-grid">' + memories.map(m => renderMemoryCard(m)).join('') + '</div>';
+    } catch (e) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">❌</div><p>Erro ao carregar: ${e.message}</p></div>`;
+      showToast('Erro ao carregar memórias', 'error');
+    }
+  }
+
+  async function searchMemories() {
+    const user = getCurrentUser();
+    const query = document.getElementById('searchQuery').value.trim();
+    if (!query) { showToast('Digite algo para buscar', 'error'); return; }
+
+    const container = document.getElementById('searchResults');
+    container.innerHTML = '<div class="loading">⏳ Buscando...</div>';
+
+    try {
+      const res = await fetch(`${API_URL}/memory/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, user_id: user, limit: 10 })
+      });
+      const data = await res.json();
+      const memories = data.memories || data || [];
+
+      if (!memories.length) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>Nenhum resultado encontrado</p></div>';
+        return;
+      }
+
+      container.innerHTML = '<div class="memories-grid">' + memories.map(m => renderMemoryCard(m, false)).join('') + '</div>';
+    } catch (e) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">❌</div><p>Erro: ${e.message}</p></div>`;
+      showToast('Erro na busca', 'error');
+    }
+  }
+
+  async function addMemory() {
+    const user = getCurrentUser();
+    const text = document.getElementById('newMemoryText').value.trim();
+    if (!text) { showToast('Digite o conteúdo da memória', 'error'); return; }
+
+    try {
+      const res = await fetch(`${API_URL}/memory/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: text }],
+          user_id: user
+        })
+      });
+      const data = await res.json();
+      document.getElementById('newMemoryText').value = '';
+      showToast('✅ Memória adicionada com sucesso!');
+    } catch (e) {
+      showToast('Erro ao adicionar memória', 'error');
+    }
+  }
+
+  async function deleteMemory(memId) {
+    if (!confirm('Deseja excluir esta memória?')) return;
+    try {
+      const res = await fetch(`${API_URL}/memory/delete/${memId}`, { method: 'DELETE' });
+      document.getElementById('mem-' + memId)?.remove();
+      showToast('🗑 Memória excluída');
+    } catch (e) {
+      showToast('Erro ao excluir', 'error');
+    }
+  }
+
+  async function loadAllUsers() {
+    switchTab('all-users');
+    const container = document.getElementById('allUsersContainer');
+    container.innerHTML = '<div class="loading">⏳ Carregando todos os canais...</div>';
+
+    const results = await Promise.all(USERS.map(async (u) => {
+      try {
+        const res = await fetch(`${API_URL}/memory/all?user_id=${encodeURIComponent(u.id)}`);
+        const data = await res.json();
+        const memories = data.memories || data || [];
+        return { ...u, memories };
+      } catch { return { ...u, memories: [] }; }
+    }));
+
+    container.innerHTML = results.map(u => `
+      <div style="margin-bottom:32px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <span class="user-dot ${u.dotClass}" style="width:12px;height:12px;border-radius:50%;display:inline-block;"></span>
+          <h2 style="font-size:1.1rem;">${u.label}</h2>
+          <span class="badge">${u.memories.length} memórias</span>
+        </div>
+        ${u.memories.length
+          ? '<div class="memories-grid">' + u.memories.slice(0, 5).map(m => renderMemoryCard(m, false)).join('') + '</div>'
+          : '<div class="empty-state" style="padding:20px;"><p>Sem memórias</p></div>'
+        }
+        ${u.memories.length > 5 ? `<p style="color:#718096;font-size:0.85rem;margin-top:8px;">... e mais ${u.memories.length - 5} memórias</p>` : ''}
+      </div>
+    `).join('<hr style="border-color:#2d3748;margin-bottom:32px;">');
+  }
+
+  // Init
+  updateAddUserLabel();
+</script>
+</body>
+</html>
