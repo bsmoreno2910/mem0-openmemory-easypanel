@@ -56,6 +56,13 @@ try:
                 "model": embedding_model,
             },
         },
+        "reranker": {
+            "provider": "flashrank",
+            "config": {
+                "model": "ms-marco-MiniLM-L-12-v2",
+                "top_n": 5
+            },
+        },
     }
 
     memory = Memory.from_config(config)

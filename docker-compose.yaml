@@ -24,12 +24,12 @@ services:
     volumes:
       - mem0-api-cache:/app/.cache
 
-  # OpenMemory MCP - Canal Principal
-  openmemory-mcp-main:
+  # OpenMemory MCP - Único (usuários criados dinamicamente via API)
+  openmemory-mcp:
     image: mem0/openmemory-mcp:latest
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      USER: openclaw_memory_main
+      USER: ${MCP_USER:-openclaw}
       QDRANT_HOST: ${QDRANT_HOST:-tools_qdrant}
       QDRANT_PORT: ${QDRANT_PORT:-6333}
       QDRANT_API_KEY: ${QDRANT_API_KEY}
@@ -37,39 +37,9 @@ services:
       - mem0-network
     restart: unless-stopped
     volumes:
-      - openmemory-mcp-main-data:/usr/src/openmemory
+      - openmemory-mcp-data:/usr/src/openmemory
 
-  # OpenMemory MCP - Canal WhatsApp
-  openmemory-mcp-whatsapp:
-    image: mem0/openmemory-mcp:latest
-    environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      USER: openclaw_memory_whatsapp
-      QDRANT_HOST: ${QDRANT_HOST:-tools_qdrant}
-      QDRANT_PORT: ${QDRANT_PORT:-6333}
-      QDRANT_API_KEY: ${QDRANT_API_KEY}
-    networks:
-      - mem0-network
-    restart: unless-stopped
-    volumes:
-      - openmemory-mcp-whatsapp-data:/usr/src/openmemory
-
-  # OpenMemory MCP - Canal Email
-  openmemory-mcp-email:
-    image: mem0/openmemory-mcp:latest
-    environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      USER: openclaw_memory_email
-      QDRANT_HOST: ${QDRANT_HOST:-tools_qdrant}
-      QDRANT_PORT: ${QDRANT_PORT:-6333}
-      QDRANT_API_KEY: ${QDRANT_API_KEY}
-    networks:
-      - mem0-network
-    restart: unless-stopped
-    volumes:
-      - openmemory-mcp-email-data:/usr/src/openmemory
-
-  # Mem0 Dashboard - UI customizada com seletor de usuário
+  # Mem0 Dashboard - UI customizada com seletor dinâmico de usuário
   mem0-dashboard:
     build:
       context: ./mem0-dashboard
@@ -78,14 +48,12 @@ services:
       - mem0-network
     restart: unless-stopped
 
-  # OpenMemory UI Service
+  # OpenMemory UI Service (nativa)
   openmemory-ui:
     image: mem0/openmemory-ui:latest
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://tools-mem0-mcp.vtc.srv.br}
-      NEXT_PUBLIC_USER_ID: ${NEXT_PUBLIC_USER_ID:-openclaw_memory_main}
-    depends_on:
-      - openmemory-mcp-main
+      NEXT_PUBLIC_USER_ID: ${NEXT_PUBLIC_USER_ID:-openclaw}
     networks:
       - mem0-network
     restart: unless-stopped
@@ -97,9 +65,5 @@ networks:
 volumes:
   mem0-api-cache:
     driver: local
-  openmemory-mcp-main-data:
-    driver: local
-  openmemory-mcp-whatsapp-data:
-    driver: local
-  openmemory-mcp-email-data:
+  openmemory-mcp-data:
     driver: local
