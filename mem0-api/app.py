@@ -38,8 +38,7 @@ try:
         "vector_store": {
             "provider": "qdrant",
             "config": {
-                "host": qdrant_host,
-                "port": qdrant_port,
+                "url": f"http://{qdrant_host}:{qdrant_port}",
                 "api_key": qdrant_api_key,
             },
         },
@@ -126,7 +125,7 @@ def health_detailed():
 
     # Testar conexão com Qdrant
     try:
-        qdrant_url = f"http://{qdrant_host}:{qdrant_port}/collections"
+        qdrant_url = f"http://{qdrant_host}:{qdrant_port}/collections"  # HTTP direto, sem SSL
         headers = {}
         if qdrant_api_key:
             headers["api-key"] = qdrant_api_key
