@@ -29,7 +29,7 @@ services:
     image: mem0/openmemory-mcp:latest
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      USER: ${MEM0_USER:-default}
+      USER: ${MEM0_USER:-openclaw}
       QDRANT_HOST: ${QDRANT_HOST:-tools_qdrant}
       QDRANT_PORT: ${QDRANT_PORT:-6333}
       QDRANT_API_KEY: ${QDRANT_API_KEY}
