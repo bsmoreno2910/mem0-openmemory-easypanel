@@ -234,6 +234,74 @@ def delete_memory(request: DeleteMemoryRequest):
         logger.error(f"❌ Error deleting memory: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/users")
+def list_users():
+    """Lista todos os user_ids que possuem memórias no Qdrant"""
+    import httpx
+    try:
+        # Busca todos os pontos da coleção mem0 no Qdrant e extrai user_ids únicos
+        headers = {}
+        if qdrant_api_key:
+            headers["api-key"] = qdrant_api_key
+
+        # Primeiro verifica se a coleção existe
+        col_res = httpx.get(
+            f"http://{qdrant_host}:{qdrant_port}/collections",
+            headers=headers, timeout=5
+        )
+        collections = [c["name"] for c in col_res.json().get("result", {}).get("collections", [])]
+
+        user_ids = set()
+
+        for collection in collections:
+            offset = None
+            while True:
+                params = {"limit": 100, "with_payload": "true"}
+                if offset:
+                    params["offset"] = offset
+
+                scroll_res = httpx.post(
+                    f"http://{qdrant_host}:{qdrant_port}/collections/{collection}/points/scroll",
+                    headers={**headers, "Content-Type": "application/json"},
+                    json={"limit": 100, "with_payload": True, "offset": offset},
+                    timeout=10
+                )
+                data = scroll_res.json().get("result", {})
+                points = data.get("points", [])
+
+                for point in points:
+                    payload = point.get("payload", {})
+                    uid = payload.get("user_id") or payload.get("userId") or payload.get("user")
+                    if uid:
+                        user_ids.add(uid)
+
+                next_offset = data.get("next_page_offset")
+                if not next_offset or not points:
+                    break
+                offset = next_offset
+
+        users = sorted(list(user_ids))
+        return {"success": True, "users": users, "total": len(users)}
+
+    except Exception as e:
+        logger.error(f"❌ Error listing users: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/memory/delete/{memory_id}")
+def delete_memory_by_id(memory_id: str):
+    """Delete memory by ID (via URL param)"""
+    if not memory:
+        raise HTTPException(status_code=500, detail=f"Mem0 not initialized: {mem0_error}")
+    try:
+        result = memory.delete(memory_id)
+        logger.info(f"✅ Memory deleted: {memory_id}")
+        return {"success": True, "result": result}
+    except Exception as e:
+        logger.error(f"❌ Error deleting memory: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/")
 def root():
     """Root endpoint"""

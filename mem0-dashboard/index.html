@@ -6,346 +6,121 @@
   <title>Mem0 Dashboard</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #0f1117;
-      color: #e2e8f0;
-      min-height: 100vh;
-    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
 
     header {
-      background: #1a1d2e;
-      border-bottom: 1px solid #2d3748;
-      padding: 16px 32px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
+      background: #1a1d2e; border-bottom: 1px solid #2d3748;
+      padding: 16px 32px; display: flex; align-items: center; gap: 16px;
     }
+    header h1 { font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .badge { background: #2d3748; color: #a0aec0; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: auto; }
+    .status-dot.ok { background: #48bb78; box-shadow: 0 0 6px #48bb78; }
+    .status-dot.error { background: #fc8181; box-shadow: 0 0 6px #fc8181; }
+    .status-dot.loading { background: #f6ad55; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
-    header h1 {
-      font-size: 1.4rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+    /* User Selector */
+    .user-selector {
+      background: #1a1d2e; border: 1px solid #2d3748; border-radius: 16px;
+      padding: 24px; margin-bottom: 28px;
     }
-
-    header .badge {
-      background: #2d3748;
-      color: #a0aec0;
-      font-size: 0.75rem;
-      padding: 2px 8px;
-      border-radius: 12px;
+    .user-selector h2 { font-size: 0.85rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+    .users-list { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .user-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: #0f1117; border: 1px solid #2d3748;
+      border-radius: 24px; padding: 8px 16px; cursor: pointer;
+      font-size: 0.9rem; transition: all 0.2s; user-select: none;
     }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 32px 24px;
+    .user-chip:hover { border-color: #667eea; color: #667eea; }
+    .user-chip.active { background: linear-gradient(135deg, #667eea22, #764ba222); border-color: #667eea; color: #667eea; font-weight: 600; }
+    .user-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .user-chip .chip-count { background: #2d3748; border-radius: 10px; padding: 1px 7px; font-size: 0.75rem; color: #a0aec0; }
+    .user-chip-add {
+      background: transparent; border: 1px dashed #4a5568;
+      border-radius: 24px; padding: 8px 16px; cursor: pointer;
+      font-size: 0.85rem; color: #718096; transition: all 0.2s;
     }
-
-    .controls {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 32px;
-      flex-wrap: wrap;
-      align-items: flex-end;
+    .user-chip-add:hover { border-color: #667eea; color: #667eea; }
+    .custom-user-input {
+      display: none; align-items: center; gap: 8px;
     }
-
-    .control-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+    .custom-user-input.visible { display: flex; }
+    .custom-user-input input {
+      background: #0f1117; border: 1px solid #667eea; color: #e2e8f0;
+      padding: 7px 12px; border-radius: 20px; font-size: 0.9rem; outline: none; width: 200px;
     }
+    .btn-xs { padding: 6px 12px; border-radius: 16px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+    .btn-xs.primary { background: #667eea; color: white; }
+    .btn-xs.ghost { background: transparent; color: #718096; }
 
-    label {
-      font-size: 0.8rem;
-      color: #a0aec0;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: #1a1d2e; padding: 4px; border-radius: 10px; width: fit-content; }
+    .tab { padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: #718096; transition: all 0.2s; border: none; background: transparent; }
+    .tab.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+    .tab:hover:not(.active) { color: #e2e8f0; }
+    .section { display: none; }
+    .section.active { display: block; }
 
-    select, input[type="text"] {
-      background: #1a1d2e;
-      border: 1px solid #2d3748;
-      color: #e2e8f0;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      min-width: 220px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
+    /* Stats */
+    .stats-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 12px; padding: 16px 24px; flex: 1; min-width: 140px; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; color: #667eea; }
+    .stat-card .label { font-size: 0.8rem; color: #a0aec0; margin-top: 4px; }
 
-    select:focus, input[type="text"]:focus {
-      border-color: #667eea;
-    }
+    /* Search */
+    .search-bar { display: flex; gap: 12px; margin-bottom: 24px; }
+    .search-bar input { flex: 1; background: #1a1d2e; border: 1px solid #2d3748; color: #e2e8f0; padding: 10px 14px; border-radius: 8px; font-size: 0.95rem; outline: none; }
+    .search-bar input:focus { border-color: #667eea; }
 
-    button {
-      padding: 10px 20px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-size: 0.95rem;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
+    /* Buttons */
+    button.btn-primary { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.95rem; font-weight: 600; background: linear-gradient(135deg, #667eea, #764ba2); color: white; transition: all 0.2s; }
+    button.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    button.btn-secondary { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.95rem; font-weight: 600; background: #2d3748; color: #e2e8f0; transition: all 0.2s; }
+    button.btn-secondary:hover { background: #3d4a5c; }
 
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-    }
-
-    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-
-    .btn-danger {
-      background: #e53e3e;
-      color: white;
-    }
-
-    .btn-danger:hover { background: #c53030; }
-
-    .btn-secondary {
-      background: #2d3748;
-      color: #e2e8f0;
-    }
-
-    .btn-secondary:hover { background: #3d4a5c; }
-
-    .stats-bar {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-
-    .stat-card {
-      background: #1a1d2e;
-      border: 1px solid #2d3748;
-      border-radius: 12px;
-      padding: 16px 24px;
-      flex: 1;
-      min-width: 140px;
-    }
-
-    .stat-card .value {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #667eea;
-    }
-
-    .stat-card .label {
-      font-size: 0.8rem;
-      color: #a0aec0;
-      margin-top: 4px;
-    }
-
-    .search-bar {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    .search-bar input {
-      flex: 1;
-    }
-
-    .memories-grid {
-      display: grid;
-      gap: 12px;
-    }
-
-    .memory-card {
-      background: #1a1d2e;
-      border: 1px solid #2d3748;
-      border-radius: 12px;
-      padding: 20px;
-      transition: border-color 0.2s;
-      position: relative;
-    }
-
-    .memory-card:hover {
-      border-color: #667eea;
-    }
-
-    .memory-card .memory-text {
-      font-size: 0.95rem;
-      line-height: 1.6;
-      color: #e2e8f0;
-      margin-bottom: 12px;
-    }
-
-    .memory-card .memory-meta {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .memory-card .memory-id {
-      font-size: 0.72rem;
-      color: #4a5568;
-      font-family: monospace;
-    }
-
-    .memory-card .memory-date {
-      font-size: 0.75rem;
-      color: #718096;
-    }
-
-    .memory-card .memory-score {
-      font-size: 0.75rem;
-      background: #2d3748;
-      color: #a0aec0;
-      padding: 2px 8px;
-      border-radius: 8px;
-    }
-
-    .memory-card .actions {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      display: flex;
-      gap: 8px;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
+    /* Memory Cards */
+    .memories-grid { display: grid; gap: 12px; }
+    .memory-card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 12px; padding: 20px; transition: border-color 0.2s; position: relative; }
+    .memory-card:hover { border-color: #667eea; }
+    .memory-card .memory-text { font-size: 0.95rem; line-height: 1.6; color: #e2e8f0; margin-bottom: 12px; padding-right: 60px; }
+    .memory-card .memory-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .memory-card .memory-id { font-size: 0.72rem; color: #4a5568; font-family: monospace; }
+    .memory-card .memory-date { font-size: 0.75rem; color: #718096; }
+    .memory-card .memory-score { font-size: 0.75rem; background: #2d3748; color: #a0aec0; padding: 2px 8px; border-radius: 8px; }
+    .memory-card .actions { position: absolute; top: 16px; right: 16px; display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s; }
     .memory-card:hover .actions { opacity: 1; }
+    .actions button { padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; border: none; cursor: pointer; background: #e53e3e; color: white; }
+    .actions button:hover { background: #c53030; }
 
-    .actions button {
-      padding: 4px 10px;
-      font-size: 0.8rem;
-    }
+    /* Add form */
+    .add-form { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+    .add-form h3 { font-size: 1rem; margin-bottom: 16px; color: #a0aec0; }
+    .add-form textarea { width: 100%; background: #0f1117; border: 1px solid #2d3748; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 0.95rem; resize: vertical; min-height: 80px; outline: none; font-family: inherit; }
+    .add-form textarea:focus { border-color: #667eea; }
+    .form-row { display: flex; gap: 12px; margin-top: 12px; align-items: center; }
+    .current-user-tag { display: inline-flex; align-items: center; gap: 6px; background: #2d3748; border-radius: 8px; padding: 6px 12px; font-size: 0.85rem; }
 
-    .add-memory-form {
-      background: #1a1d2e;
-      border: 1px solid #2d3748;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 24px;
-    }
+    /* All users view */
+    .all-users-section { margin-bottom: 32px; }
+    .all-users-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .all-users-header h2 { font-size: 1.1rem; }
 
-    .add-memory-form h3 {
-      font-size: 1rem;
-      margin-bottom: 16px;
-      color: #a0aec0;
-    }
-
-    .add-memory-form textarea {
-      width: 100%;
-      background: #0f1117;
-      border: 1px solid #2d3748;
-      color: #e2e8f0;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      resize: vertical;
-      min-height: 80px;
-      outline: none;
-      font-family: inherit;
-    }
-
-    .add-memory-form textarea:focus { border-color: #667eea; }
-
-    .form-row {
-      display: flex;
-      gap: 12px;
-      margin-top: 12px;
-      align-items: center;
-    }
-
-    .user-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #2d3748;
-      border-radius: 8px;
-      padding: 6px 12px;
-      font-size: 0.85rem;
-    }
-
-    .user-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .dot-main { background: #667eea; }
-    .dot-whatsapp { background: #25d366; }
-    .dot-email { background: #f6ad55; }
-    .dot-openclaw { background: #fc8181; }
-    .dot-default { background: #a0aec0; }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #4a5568;
-    }
-
+    /* Empty / Loading */
+    .empty-state { text-align: center; padding: 60px 20px; color: #4a5568; }
     .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
-    .empty-state p { font-size: 1rem; }
+    .loading { text-align: center; padding: 40px; color: #667eea; }
 
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #667eea;
-    }
-
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #1a1d2e;
-      border: 1px solid #2d3748;
-      border-radius: 12px;
-      padding: 14px 20px;
-      font-size: 0.9rem;
-      z-index: 1000;
-      transform: translateY(100px);
-      opacity: 0;
-      transition: all 0.3s;
-    }
-
-    .toast.show {
-      transform: translateY(0);
-      opacity: 1;
-    }
-
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1d2e; border: 1px solid #2d3748; border-radius: 12px; padding: 14px 20px; font-size: 0.9rem; z-index: 1000; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+    .toast.show { transform: translateY(0); opacity: 1; }
     .toast.success { border-color: #48bb78; color: #48bb78; }
     .toast.error { border-color: #fc8181; color: #fc8181; }
 
-    .tabs {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 24px;
-      background: #1a1d2e;
-      padding: 4px;
-      border-radius: 10px;
-      width: fit-content;
-    }
-
-    .tab {
-      padding: 8px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      color: #718096;
-      transition: all 0.2s;
-      border: none;
-      background: transparent;
-    }
-
-    .tab.active {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-    }
-
-    .tab:hover:not(.active) { color: #e2e8f0; }
-
-    .section { display: none; }
-    .section.active { display: block; }
+    hr.divider { border: none; border-top: 1px solid #2d3748; margin: 28px 0; }
   </style>
 </head>
 <body>
@@ -353,33 +128,21 @@
 <header>
   <h1>🧠 Mem0 Dashboard</h1>
   <span class="badge">OpenMemory</span>
+  <span id="apiStatus" class="status-dot loading" title="Verificando API..."></span>
 </header>
 
 <div class="container">
 
-  <!-- Controles principais -->
-  <div class="controls">
-    <div class="control-group">
-      <label>Usuário / Canal</label>
-      <select id="userSelect" onchange="onUserChange()">
-        <option value="openclaw">openclaw (padrão)</option>
-        <option value="openclaw_memory_main">openclaw_memory_main</option>
-        <option value="openclaw_memory_whatsapp">openclaw_memory_whatsapp</option>
-        <option value="openclaw_memory_email">openclaw_memory_email</option>
-        <option value="custom">Personalizado...</option>
-      </select>
+  <!-- Seletor dinâmico de usuários -->
+  <div class="user-selector">
+    <h2>Canal / Usuário</h2>
+    <div class="users-list" id="usersList">
+      <div class="loading" style="padding:8px;">⏳ Descobrindo usuários...</div>
     </div>
-    <div class="control-group" id="customUserGroup" style="display:none">
-      <label>user_id personalizado</label>
-      <input type="text" id="customUser" placeholder="ex: meu_usuario" />
-    </div>
-    <div class="control-group">
-      <label>&nbsp;</label>
-      <button class="btn-primary" onclick="loadMemories()">🔄 Carregar</button>
-    </div>
-    <div class="control-group">
-      <label>&nbsp;</label>
-      <button class="btn-secondary" onclick="loadAllUsers()">👥 Ver Todos os Canais</button>
+    <div class="custom-user-input" id="customUserInput">
+      <input type="text" id="customUserId" placeholder="Digite o user_id..." />
+      <button class="btn-xs primary" onclick="addCustomUser()">Confirmar</button>
+      <button class="btn-xs ghost" onclick="toggleCustomInput()">Cancelar</button>
     </div>
   </div>
 
@@ -388,56 +151,51 @@
     <button class="tab active" onclick="switchTab('memories')">Memórias</button>
     <button class="tab" onclick="switchTab('search')">Buscar</button>
     <button class="tab" onclick="switchTab('add')">Adicionar</button>
-    <button class="tab" onclick="switchTab('all-users')">Todos os Canais</button>
+    <button class="tab" onclick="switchTab('overview')">Visão Geral</button>
   </div>
 
   <!-- Aba: Memórias -->
   <div id="tab-memories" class="section active">
     <div class="stats-bar" id="statsBar"></div>
     <div id="memoriesContainer">
-      <div class="empty-state">
-        <div class="icon">🧠</div>
-        <p>Selecione um usuário e clique em Carregar</p>
-      </div>
+      <div class="empty-state"><div class="icon">🧠</div><p>Selecione um usuário acima para ver as memórias</p></div>
     </div>
   </div>
 
   <!-- Aba: Buscar -->
   <div id="tab-search" class="section">
     <div class="search-bar">
-      <input type="text" id="searchQuery" placeholder="Digite sua busca..." onkeydown="if(event.key==='Enter') searchMemories()" />
+      <input type="text" id="searchQuery" placeholder="Digite sua busca semântica..." onkeydown="if(event.key==='Enter') searchMemories()" />
       <button class="btn-primary" onclick="searchMemories()">🔍 Buscar</button>
     </div>
     <div id="searchResults">
-      <div class="empty-state">
-        <div class="icon">🔍</div>
-        <p>Digite algo para buscar nas memórias</p>
-      </div>
+      <div class="empty-state"><div class="icon">🔍</div><p>Digite algo para buscar nas memórias do usuário selecionado</p></div>
     </div>
   </div>
 
   <!-- Aba: Adicionar -->
   <div id="tab-add" class="section">
-    <div class="add-memory-form">
+    <div class="add-form">
       <h3>➕ Adicionar nova memória</h3>
       <textarea id="newMemoryText" placeholder="Ex: O usuário prefere respostas curtas e diretas..."></textarea>
       <div class="form-row">
-        <span class="user-tag">
-          <span class="user-dot" id="addUserDot"></span>
-          <span id="addUserLabel">openclaw</span>
+        <span class="current-user-tag">
+          <span id="addUserDot" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:#667eea;"></span>
+          <span id="addUserLabel">Nenhum usuário selecionado</span>
         </span>
         <button class="btn-primary" onclick="addMemory()">Salvar Memória</button>
       </div>
     </div>
   </div>
 
-  <!-- Aba: Todos os Canais -->
-  <div id="tab-all-users" class="section">
-    <div id="allUsersContainer">
-      <div class="empty-state">
-        <div class="icon">👥</div>
-        <p>Clique em "Ver Todos os Canais" para carregar</p>
-      </div>
+  <!-- Aba: Visão Geral -->
+  <div id="tab-overview" class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h2 style="font-size:1.1rem;color:#a0aec0;">Todos os Canais</h2>
+      <button class="btn-secondary" onclick="loadOverview()" style="padding:8px 16px;font-size:0.85rem;">🔄 Atualizar</button>
+    </div>
+    <div id="overviewContainer">
+      <div class="empty-state"><div class="icon">👥</div><p>Carregando visão geral...</p></div>
     </div>
   </div>
 
@@ -447,45 +205,15 @@
 
 <script>
   const API_URL = 'https://tools-mem0-api.vtc.srv.br';
+  let currentUser = null;
+  let discoveredUsers = [];
 
-  const USERS = [
-    { id: 'openclaw', label: 'openclaw', dotClass: 'dot-openclaw' },
-    { id: 'openclaw_memory_main', label: 'Main', dotClass: 'dot-main' },
-    { id: 'openclaw_memory_whatsapp', label: 'WhatsApp', dotClass: 'dot-whatsapp' },
-    { id: 'openclaw_memory_email', label: 'Email', dotClass: 'dot-email' },
-  ];
-
-  function getCurrentUser() {
-    const sel = document.getElementById('userSelect').value;
-    if (sel === 'custom') return document.getElementById('customUser').value.trim();
-    return sel;
-  }
-
-  function getDotClass(userId) {
-    const u = USERS.find(u => u.id === userId);
-    return u ? u.dotClass : 'dot-default';
-  }
-
-  function onUserChange() {
-    const sel = document.getElementById('userSelect').value;
-    document.getElementById('customUserGroup').style.display = sel === 'custom' ? 'flex' : 'none';
-    updateAddUserLabel();
-  }
-
-  function updateAddUserLabel() {
-    const user = getCurrentUser();
-    document.getElementById('addUserLabel').textContent = user || '...';
-    document.getElementById('addUserDot').className = 'user-dot ' + getDotClass(user);
-  }
-
-  function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t, i) => {
-      const tabs = ['memories', 'search', 'add', 'all-users'];
-      t.classList.toggle('active', tabs[i] === tab);
-    });
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById('tab-' + tab).classList.add('active');
-    if (tab === 'add') updateAddUserLabel();
+  // Gera cor determinística baseada no user_id
+  function colorForUser(userId) {
+    const colors = ['#667eea','#48bb78','#f6ad55','#fc8181','#76e4f7','#b794f4','#fbb6ce','#9ae6b4'];
+    let hash = 0;
+    for (let c of userId) hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
+    return colors[Math.abs(hash) % colors.length];
   }
 
   function showToast(msg, type = 'success') {
@@ -495,16 +223,88 @@
     setTimeout(() => t.className = 'toast', 3000);
   }
 
-  function formatDate(dateStr) {
-    if (!dateStr) return '';
-    try {
-      return new Date(dateStr).toLocaleString('pt-BR');
-    } catch { return dateStr; }
+  function formatDate(d) {
+    if (!d) return '';
+    try { return new Date(d).toLocaleString('pt-BR'); } catch { return d; }
   }
 
-  function renderMemoryCard(mem, showDelete = true) {
-    const score = mem.score ? `<span class="memory-score">Score: ${mem.score.toFixed(3)}</span>` : '';
-    const deleteBtn = showDelete ? `<button class="btn-danger" onclick="deleteMemory('${mem.id}')">🗑</button>` : '';
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      const tabs = ['memories','search','add','overview'];
+      t.classList.toggle('active', tabs[i] === tab);
+    });
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    if (tab === 'add') updateAddLabel();
+    if (tab === 'overview') loadOverview();
+  }
+
+  function updateAddLabel() {
+    document.getElementById('addUserLabel').textContent = currentUser || 'Nenhum usuário selecionado';
+    document.getElementById('addUserDot').style.background = currentUser ? colorForUser(currentUser) : '#4a5568';
+  }
+
+  // ── Descoberta dinâmica de usuários ──────────────────────────────────────
+  async function discoverUsers() {
+    const list = document.getElementById('usersList');
+    try {
+      const res = await fetch(`${API_URL}/users`);
+      const data = await res.json();
+      discoveredUsers = data.users || [];
+
+      document.getElementById('apiStatus').className = 'status-dot ok';
+
+      renderUserChips();
+    } catch (e) {
+      document.getElementById('apiStatus').className = 'status-dot error';
+      list.innerHTML = `<span style="color:#fc8181;font-size:0.85rem;">❌ Não foi possível conectar à API: ${e.message}</span>`;
+    }
+  }
+
+  function renderUserChips(selectedUser) {
+    const list = document.getElementById('usersList');
+    if (!discoveredUsers.length) {
+      list.innerHTML = `
+        <span style="color:#718096;font-size:0.85rem;">Nenhum usuário com memórias ainda.</span>
+        <button class="user-chip-add" onclick="toggleCustomInput()">+ Digitar user_id</button>
+      `;
+      return;
+    }
+
+    list.innerHTML = discoveredUsers.map(uid => `
+      <div class="user-chip ${uid === currentUser ? 'active' : ''}" onclick="selectUser('${uid}')">
+        <span class="chip-dot" style="background:${colorForUser(uid)}"></span>
+        ${uid}
+      </div>
+    `).join('') + `<button class="user-chip-add" onclick="toggleCustomInput()">+ Outro</button>`;
+  }
+
+  function selectUser(uid) {
+    currentUser = uid;
+    renderUserChips();
+    updateAddLabel();
+    loadMemories();
+  }
+
+  function toggleCustomInput() {
+    const el = document.getElementById('customUserInput');
+    el.classList.toggle('visible');
+    if (el.classList.contains('visible')) document.getElementById('customUserId').focus();
+  }
+
+  function addCustomUser() {
+    const uid = document.getElementById('customUserId').value.trim();
+    if (!uid) return;
+    if (!discoveredUsers.includes(uid)) discoveredUsers.push(uid);
+    document.getElementById('customUserId').value = '';
+    toggleCustomInput();
+    selectUser(uid);
+  }
+
+  // ── Memórias ──────────────────────────────────────────────────────────────
+  function renderMemoryCard(mem, deletable = true) {
+    const score = mem.score != null ? `<span class="memory-score">Score: ${Number(mem.score).toFixed(3)}</span>` : '';
+    const del = deletable ? `<button onclick="deleteMemory('${mem.id}')">🗑</button>` : '';
     return `
       <div class="memory-card" id="mem-${mem.id}">
         <div class="memory-text">${mem.memory || mem.text || JSON.stringify(mem)}</div>
@@ -513,50 +313,43 @@
           <span class="memory-date">${formatDate(mem.created_at || mem.updated_at)}</span>
           ${score}
         </div>
-        <div class="actions">
-          ${deleteBtn}
-        </div>
-      </div>
-    `;
+        <div class="actions">${del}</div>
+      </div>`;
   }
 
   async function loadMemories() {
-    const user = getCurrentUser();
-    if (!user) { showToast('Selecione um usuário', 'error'); return; }
-
+    if (!currentUser) { showToast('Selecione um usuário', 'error'); return; }
     const container = document.getElementById('memoriesContainer');
     container.innerHTML = '<div class="loading">⏳ Carregando memórias...</div>';
 
     try {
-      const res = await fetch(`${API_URL}/memory/all?user_id=${encodeURIComponent(user)}`);
+      const res = await fetch(`${API_URL}/memory/all?user_id=${encodeURIComponent(currentUser)}`);
       const data = await res.json();
-      const memories = data.memories || data || [];
+      const mems = data.result?.results || data.result || data.memories || [];
 
       document.getElementById('statsBar').innerHTML = `
+        <div class="stat-card"><div class="value">${mems.length}</div><div class="label">Total de Memórias</div></div>
         <div class="stat-card">
-          <div class="value">${memories.length}</div>
-          <div class="label">Total de Memórias</div>
-        </div>
-        <div class="stat-card">
-          <div class="value"><span class="user-dot ${getDotClass(user)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;"></span>${user}</div>
+          <div class="value" style="font-size:1rem;display:flex;align-items:center;gap:8px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:${colorForUser(currentUser)};display:inline-block;"></span>
+            ${currentUser}
+          </div>
           <div class="label">Canal Ativo</div>
-        </div>
-      `;
+        </div>`;
 
-      if (!memories.length) {
+      if (!mems.length) {
         container.innerHTML = '<div class="empty-state"><div class="icon">🧠</div><p>Nenhuma memória encontrada para este usuário</p></div>';
         return;
       }
-
-      container.innerHTML = '<div class="memories-grid">' + memories.map(m => renderMemoryCard(m)).join('') + '</div>';
+      container.innerHTML = '<div class="memories-grid">' + mems.map(m => renderMemoryCard(m)).join('') + '</div>';
     } catch (e) {
-      container.innerHTML = `<div class="empty-state"><div class="icon">❌</div><p>Erro ao carregar: ${e.message}</p></div>`;
+      container.innerHTML = `<div class="empty-state"><div class="icon">❌</div><p>Erro: ${e.message}</p></div>`;
       showToast('Erro ao carregar memórias', 'error');
     }
   }
 
   async function searchMemories() {
-    const user = getCurrentUser();
+    if (!currentUser) { showToast('Selecione um usuário', 'error'); return; }
     const query = document.getElementById('searchQuery').value.trim();
     if (!query) { showToast('Digite algo para buscar', 'error'); return; }
 
@@ -567,17 +360,16 @@
       const res = await fetch(`${API_URL}/memory/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, user_id: user, limit: 10 })
+        body: JSON.stringify({ query, user_id: currentUser, limit: 10 })
       });
       const data = await res.json();
-      const memories = data.memories || data || [];
+      const mems = data.result?.results || data.result || data.memories || [];
 
-      if (!memories.length) {
+      if (!mems.length) {
         container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>Nenhum resultado encontrado</p></div>';
         return;
       }
-
-      container.innerHTML = '<div class="memories-grid">' + memories.map(m => renderMemoryCard(m, false)).join('') + '</div>';
+      container.innerHTML = '<div class="memories-grid">' + mems.map(m => renderMemoryCard(m, false)).join('') + '</div>';
     } catch (e) {
       container.innerHTML = `<div class="empty-state"><div class="icon">❌</div><p>Erro: ${e.message}</p></div>`;
       showToast('Erro na busca', 'error');
@@ -585,22 +377,23 @@
   }
 
   async function addMemory() {
-    const user = getCurrentUser();
+    if (!currentUser) { showToast('Selecione um usuário primeiro', 'error'); return; }
     const text = document.getElementById('newMemoryText').value.trim();
     if (!text) { showToast('Digite o conteúdo da memória', 'error'); return; }
 
     try {
-      const res = await fetch(`${API_URL}/memory/add`, {
+      await fetch(`${API_URL}/memory/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: text }],
-          user_id: user
-        })
+        body: JSON.stringify({ messages: [{ role: 'user', content: text }], user_id: currentUser })
       });
-      const data = await res.json();
       document.getElementById('newMemoryText').value = '';
-      showToast('✅ Memória adicionada com sucesso!');
+      showToast('✅ Memória adicionada!');
+      // Atualiza lista de usuários para refletir novo usuário se necessário
+      if (!discoveredUsers.includes(currentUser)) {
+        discoveredUsers.push(currentUser);
+        renderUserChips();
+      }
     } catch (e) {
       showToast('Erro ao adicionar memória', 'error');
     }
@@ -609,7 +402,7 @@
   async function deleteMemory(memId) {
     if (!confirm('Deseja excluir esta memória?')) return;
     try {
-      const res = await fetch(`${API_URL}/memory/delete/${memId}`, { method: 'DELETE' });
+      await fetch(`${API_URL}/memory/delete/${memId}`, { method: 'DELETE' });
       document.getElementById('mem-' + memId)?.remove();
       showToast('🗑 Memória excluída');
     } catch (e) {
@@ -617,38 +410,44 @@
     }
   }
 
-  async function loadAllUsers() {
-    switchTab('all-users');
-    const container = document.getElementById('allUsersContainer');
+  // ── Visão Geral ───────────────────────────────────────────────────────────
+  async function loadOverview() {
+    const container = document.getElementById('overviewContainer');
+    if (!discoveredUsers.length) {
+      container.innerHTML = '<div class="empty-state"><div class="icon">👥</div><p>Nenhum usuário descoberto ainda</p></div>';
+      return;
+    }
     container.innerHTML = '<div class="loading">⏳ Carregando todos os canais...</div>';
 
-    const results = await Promise.all(USERS.map(async (u) => {
+    const results = await Promise.all(discoveredUsers.map(async uid => {
       try {
-        const res = await fetch(`${API_URL}/memory/all?user_id=${encodeURIComponent(u.id)}`);
+        const res = await fetch(`${API_URL}/memory/all?user_id=${encodeURIComponent(uid)}`);
         const data = await res.json();
-        const memories = data.memories || data || [];
-        return { ...u, memories };
-      } catch { return { ...u, memories: [] }; }
+        const mems = data.result?.results || data.result || data.memories || [];
+        return { uid, mems };
+      } catch { return { uid, mems: [] }; }
     }));
 
-    container.innerHTML = results.map(u => `
-      <div style="margin-bottom:32px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <span class="user-dot ${u.dotClass}" style="width:12px;height:12px;border-radius:50%;display:inline-block;"></span>
-          <h2 style="font-size:1.1rem;">${u.label}</h2>
-          <span class="badge">${u.memories.length} memórias</span>
+    container.innerHTML = results.map((r, i) => `
+      <div class="all-users-section">
+        <div class="all-users-header">
+          <span style="width:12px;height:12px;border-radius:50%;background:${colorForUser(r.uid)};display:inline-block;"></span>
+          <h2>${r.uid}</h2>
+          <span class="badge">${r.mems.length} memórias</span>
+          <button class="btn-xs primary" onclick="selectUser('${r.uid}');switchTab('memories')" style="margin-left:auto;">Ver todas</button>
         </div>
-        ${u.memories.length
-          ? '<div class="memories-grid">' + u.memories.slice(0, 5).map(m => renderMemoryCard(m, false)).join('') + '</div>'
-          : '<div class="empty-state" style="padding:20px;"><p>Sem memórias</p></div>'
+        ${r.mems.length
+          ? '<div class="memories-grid">' + r.mems.slice(0, 3).map(m => renderMemoryCard(m, false)).join('') + '</div>'
+            + (r.mems.length > 3 ? `<p style="color:#718096;font-size:0.82rem;margin-top:8px;padding-left:4px;">... e mais ${r.mems.length - 3} memórias</p>` : '')
+          : '<div class="empty-state" style="padding:16px;"><p>Sem memórias</p></div>'
         }
-        ${u.memories.length > 5 ? `<p style="color:#718096;font-size:0.85rem;margin-top:8px;">... e mais ${u.memories.length - 5} memórias</p>` : ''}
       </div>
-    `).join('<hr style="border-color:#2d3748;margin-bottom:32px;">');
+      ${i < results.length - 1 ? '<hr class="divider">' : ''}
+    `).join('');
   }
 
-  // Init
-  updateAddUserLabel();
+  // ── Init ──────────────────────────────────────────────────────────────────
+  discoverUsers();
 </script>
 </body>
 </html>
