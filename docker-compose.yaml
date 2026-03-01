@@ -24,6 +24,21 @@ services:
     volumes:
       - mem0-api-cache:/app/.cache
 
+  # OpenMemory MCP Service
+  openmemory-mcp:
+    image: mem0/openmemory-mcp:latest
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      USER: ${MEM0_USER:-default}
+      QDRANT_HOST: ${QDRANT_HOST:-tools_qdrant}
+      QDRANT_PORT: ${QDRANT_PORT:-6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+    depends_on:
+      - mem0-api
+    networks:
+      - mem0-network
+    restart: unless-stopped
+
   # OpenMemory UI Service
   openmemory-ui:
     image: mem0/openmemory-ui:latest
