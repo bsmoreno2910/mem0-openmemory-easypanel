@@ -24,35 +24,59 @@ services:
     volumes:
       - mem0-api-cache:/app/.cache
 
-  # OpenMemory MCP Service
-  openmemory-mcp:
+  # OpenMemory MCP - Canal Principal
+  openmemory-mcp-main:
     image: mem0/openmemory-mcp:latest
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      USER: ${MEM0_USER:-openclaw}
+      USER: openclaw_memory_main
       QDRANT_HOST: ${QDRANT_HOST:-tools_qdrant}
       QDRANT_PORT: ${QDRANT_PORT:-6333}
       QDRANT_API_KEY: ${QDRANT_API_KEY}
-    depends_on:
-      - mem0-api
     networks:
       - mem0-network
     restart: unless-stopped
+    volumes:
+      - openmemory-mcp-main-data:/usr/src/openmemory
+
+  # OpenMemory MCP - Canal WhatsApp
+  openmemory-mcp-whatsapp:
+    image: mem0/openmemory-mcp:latest
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      USER: openclaw_memory_whatsapp
+      QDRANT_HOST: ${QDRANT_HOST:-tools_qdrant}
+      QDRANT_PORT: ${QDRANT_PORT:-6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+    networks:
+      - mem0-network
+    restart: unless-stopped
+    volumes:
+      - openmemory-mcp-whatsapp-data:/usr/src/openmemory
+
+  # OpenMemory MCP - Canal Email
+  openmemory-mcp-email:
+    image: mem0/openmemory-mcp:latest
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      USER: openclaw_memory_email
+      QDRANT_HOST: ${QDRANT_HOST:-tools_qdrant}
+      QDRANT_PORT: ${QDRANT_PORT:-6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+    networks:
+      - mem0-network
+    restart: unless-stopped
+    volumes:
+      - openmemory-mcp-email-data:/usr/src/openmemory
 
   # OpenMemory UI Service
   openmemory-ui:
     image: mem0/openmemory-ui:latest
     environment:
-      REACT_APP_API_URL: http://mem0-api:8000
-      REACT_APP_API_BASE_URL: http://mem0-api:8000/api
-      QDRANT_HOST: ${QDRANT_HOST:-tools_qdrant}
-      QDRANT_PORT: ${QDRANT_PORT:-6333}
-      QDRANT_API_KEY: ${QDRANT_API_KEY}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
-      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-large}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://tools-mem0-mcp.vtc.srv.br}
+      NEXT_PUBLIC_USER_ID: ${NEXT_PUBLIC_USER_ID:-openclaw_memory_main}
     depends_on:
-      - mem0-api
+      - openmemory-mcp-main
     networks:
       - mem0-network
     restart: unless-stopped
@@ -63,4 +87,10 @@ networks:
 
 volumes:
   mem0-api-cache:
+    driver: local
+  openmemory-mcp-main-data:
+    driver: local
+  openmemory-mcp-whatsapp-data:
+    driver: local
+  openmemory-mcp-email-data:
     driver: local
