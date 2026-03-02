@@ -3,10 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from mem0 import Memory
 import os
+import json
 import logging
 
 # FlashRank reranker (inicializado lazy para não bloquear o startup)
 _flashrank_ranker = None
+
 def get_flashrank():
     global _flashrank_ranker
     if _flashrank_ranker is None:
@@ -70,7 +72,6 @@ try:
             },
         },
     }
-
     memory = Memory.from_config(config)
     logger.info("✅ Mem0 initialized successfully")
     mem0_initialized = True
@@ -80,6 +81,11 @@ except Exception as e:
     memory = None
     mem0_initialized = False
     mem0_error = str(e)
+
+# Helper: sanitizar tipos numpy/non-serializable antes de retornar
+def sanitize(obj):
+    """Converte o objeto para tipos nativos Python via json roundtrip."""
+    return json.loads(json.dumps(obj, default=str))
 
 # Request/Response Models
 class AddMemoryRequest(BaseModel):
@@ -140,7 +146,7 @@ def health_detailed():
 
     # Testar conexão com Qdrant
     try:
-        qdrant_url = f"http://{qdrant_host}:{qdrant_port}/collections"  # HTTP direto, sem SSL
+        qdrant_url = f"http://{qdrant_host}:{qdrant_port}/collections"
         headers = {}
         if qdrant_api_key:
             headers["api-key"] = qdrant_api_key
@@ -184,11 +190,10 @@ def add_memory(request: AddMemoryRequest):
     """Add new memory"""
     if not memory:
         raise HTTPException(status_code=500, detail=f"Mem0 not initialized: {mem0_error}")
-
     try:
         result = memory.add(request.messages, user_id=request.user_id)
         logger.info(f"✅ Memory added for user: {request.user_id}")
-        return {"success": True, "result": result}
+        return sanitize({"success": True, "result": result})
     except Exception as e:
         logger.error(f"❌ Error adding memory: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -198,7 +203,6 @@ def search_memory(request: SearchMemoryRequest):
     """Search memories with optional FlashRank reranking"""
     if not memory:
         raise HTTPException(status_code=500, detail=f"Mem0 not initialized: {mem0_error}")
-
     try:
         result = memory.search(query=request.query, user_id=request.user_id, limit=request.limit)
 
@@ -212,24 +216,31 @@ def search_memory(request: SearchMemoryRequest):
                     passages = [{"id": i, "text": m.get("memory", str(m))} for i, m in enumerate(memories)]
                     rerank_req = RerankRequest(query=request.query, passages=passages)
                     reranked = ranker.rerank(rerank_req)
+
                     # Reordenar memórias conforme score do FlashRank
                     reranked_sorted = sorted(reranked, key=lambda x: x.get("score", 0), reverse=True)
                     top_ids = [r["id"] for r in reranked_sorted[:request.top_n]]
                     reranked_memories = [memories[i] for i in top_ids if i < len(memories)]
-                    # Adicionar score do reranker
+
+                    # Adicionar score do reranker (convertido para float nativo)
                     for i, mem in enumerate(reranked_memories):
-                        mem["rerank_score"] = reranked_sorted[i].get("score", 0)
+                        mem["rerank_score"] = float(reranked_sorted[i].get("score", 0))
+
                     if isinstance(result, dict):
                         result["results"] = reranked_memories
                         result["reranked"] = True
                     else:
                         result = reranked_memories
+
                     logger.info(f"✅ FlashRank reranking applied: {len(memories)} -> {len(reranked_memories)} results")
             except Exception as re:
                 logger.warning(f"⚠️ FlashRank reranking failed, returning original results: {re}")
 
         logger.info(f"✅ Memory search completed for user: {request.user_id}")
-        return {"success": True, "result": result}
+
+        # Sanitizar tipos numpy/non-serializable antes de retornar
+        return sanitize({"success": True, "result": result})
+
     except Exception as e:
         logger.error(f"❌ Error searching memory: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -239,11 +250,10 @@ def get_all_memories(user_id: str = "default"):
     """Get all memories for a user"""
     if not memory:
         raise HTTPException(status_code=500, detail=f"Mem0 not initialized: {mem0_error}")
-
     try:
         result = memory.get_all(user_id=user_id)
         logger.info(f"✅ Retrieved all memories for user: {user_id}")
-        return {"success": True, "result": result}
+        return sanitize({"success": True, "result": result})
     except Exception as e:
         logger.error(f"❌ Error retrieving memories: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -253,11 +263,10 @@ def update_memory(request: UpdateMemoryRequest):
     """Update existing memory"""
     if not memory:
         raise HTTPException(status_code=500, detail=f"Mem0 not initialized: {mem0_error}")
-
     try:
         result = memory.update(request.memory_id, data=request.data, user_id=request.user_id)
         logger.info(f"✅ Memory updated: {request.memory_id}")
-        return {"success": True, "result": result}
+        return sanitize({"success": True, "result": result})
     except Exception as e:
         logger.error(f"❌ Error updating memory: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -267,11 +276,10 @@ def delete_memory(request: DeleteMemoryRequest):
     """Delete memory"""
     if not memory:
         raise HTTPException(status_code=500, detail=f"Mem0 not initialized: {mem0_error}")
-
     try:
         result = memory.delete(request.memory_id, user_id=request.user_id)
         logger.info(f"✅ Memory deleted: {request.memory_id}")
-        return {"success": True, "result": result}
+        return sanitize({"success": True, "result": result})
     except Exception as e:
         logger.error(f"❌ Error deleting memory: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -281,12 +289,10 @@ def list_users():
     """Lista todos os user_ids que possuem memórias no Qdrant"""
     import httpx
     try:
-        # Busca todos os pontos da coleção mem0 no Qdrant e extrai user_ids únicos
         headers = {}
         if qdrant_api_key:
             headers["api-key"] = qdrant_api_key
 
-        # Primeiro verifica se a coleção existe
         col_res = httpx.get(
             f"http://{qdrant_host}:{qdrant_port}/collections",
             headers=headers, timeout=5
@@ -294,14 +300,9 @@ def list_users():
         collections = [c["name"] for c in col_res.json().get("result", {}).get("collections", [])]
 
         user_ids = set()
-
         for collection in collections:
             offset = None
             while True:
-                params = {"limit": 100, "with_payload": "true"}
-                if offset:
-                    params["offset"] = offset
-
                 scroll_res = httpx.post(
                     f"http://{qdrant_host}:{qdrant_port}/collections/{collection}/points/scroll",
                     headers={**headers, "Content-Type": "application/json"},
@@ -310,13 +311,11 @@ def list_users():
                 )
                 data = scroll_res.json().get("result", {})
                 points = data.get("points", [])
-
                 for point in points:
                     payload = point.get("payload", {})
                     uid = payload.get("user_id") or payload.get("userId") or payload.get("user")
                     if uid:
                         user_ids.add(uid)
-
                 next_offset = data.get("next_page_offset")
                 if not next_offset or not points:
                     break
@@ -329,7 +328,6 @@ def list_users():
         logger.error(f"❌ Error listing users: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.delete("/memory/delete/{memory_id}")
 def delete_memory_by_id(memory_id: str):
     """Delete memory by ID (via URL param)"""
@@ -338,11 +336,10 @@ def delete_memory_by_id(memory_id: str):
     try:
         result = memory.delete(memory_id)
         logger.info(f"✅ Memory deleted: {memory_id}")
-        return {"success": True, "result": result}
+        return sanitize({"success": True, "result": result})
     except Exception as e:
         logger.error(f"❌ Error deleting memory: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/")
 def root():
